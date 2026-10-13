@@ -1,5 +1,7 @@
 # Fiapo
 
+<p align="center"><img src="docs/fiapo.gif" alt="O Fiapo, de lacinho, andando pela teia de fontes e acendendo os cards que as patas tocam" width="440"></p>
+
 Fiapo é um companheiro de estudo: uma aranhinha que anda pela tela e tece uma teia com tudo o que você estuda. Cada fonte que você dá pra ela vira um fio, e as patas dela acendem na cor da matéria de cada fonte.
 
 - **Teia de fontes:** cole um link, dê um título e uma matéria. O Fiapo corre até a fonte nova e liga fontes da mesma matéria.
