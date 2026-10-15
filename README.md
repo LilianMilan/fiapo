@@ -12,6 +12,8 @@ Fiapo é um companheiro de estudo: uma aranhinha que anda pela tela e tece uma t
 
 Tudo fica salvo no `localStorage` do navegador: não há login nem servidor.
 
+**Experimente:** https://lilianmilan.github.io/fiapo/
+
 ## Rodar localmente
 
 Precisa do Node.js 20.19+ ou 22.12+ (exigência do Vite 8).
