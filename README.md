@@ -41,3 +41,7 @@ O navegador abre sozinho em `http://localhost:5173`. Em modo de desenvolvimento,
 - `npm run build`: checa os tipos e gera o build em `dist/`
 - `npm run lint`: roda o Oxlint
 - `npm run preview`: abre o build de produção localmente
+
+## Licença
+
+[MIT](LICENSE): pode usar, modificar e redistribuir à vontade, desde que mantenha o aviso de copyright.
