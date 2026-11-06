@@ -8,11 +8,27 @@ export const DAY = 86_400_000
 export const FORGOTTEN_AFTER = 7 * DAY
 const PALETTE = ['#b9e978', '#ac98f3', '#e6ae67', '#7eaee9', '#ef8fb5', '#6fd6c4']
 
-export function usePersisted<T>(key: string, initial: T) {
+// Only http(s) links become cards: no javascript:, data: and the like
+export const isWebUrl = (url: string) => {
+  try { return ['http:', 'https:'].includes(new URL(url).protocol) } catch { return false }
+}
+
+// Validators for what comes back from localStorage, which may be old or hand-edited
+export const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
+export const listOf = <T,>(check: (v: unknown) => v is T) => (raw: unknown): T[] | undefined =>
+  Array.isArray(raw) ? raw.filter(check) : undefined
+export const isString = (v: unknown): v is string => typeof v === 'string'
+
+const isSource = (v: unknown): v is Source => isRecord(v)
+  && isString(v.id) && isString(v.url) && isWebUrl(v.url) && isString(v.title) && isString(v.subject)
+  && Number.isFinite(v.addedAt) && Number.isFinite(v.lastSeenAt)
+
+// `parse` returns undefined when the stored value is unusable, and then `initial` is used
+export function usePersisted<T>(key: string, initial: T, parse: (raw: unknown) => T | undefined) {
   const [value, setValue] = useState<T>(() => {
     try {
       const raw = localStorage.getItem(key)
-      return raw ? JSON.parse(raw) : initial
+      return raw ? parse(JSON.parse(raw)) ?? initial : initial
     } catch {
       return initial
     }
@@ -26,9 +42,10 @@ export function usePersisted<T>(key: string, initial: T) {
 }
 
 export function useSources() {
-  const [sources, setSources] = usePersisted<Source[]>(KEY, [])
+  const [sources, setSources] = usePersisted<Source[]>(KEY, [], listOf(isSource))
 
   const add = (input: Pick<Source, 'url' | 'title' | 'subject'>) => {
+    if (!isWebUrl(input.url)) return null
     const now = Date.now()
     const source = { ...input, id: crypto.randomUUID(), addedAt: now, lastSeenAt: now }
     setSources(list => [...list, source])

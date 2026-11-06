@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { usePersisted, type Source } from './store'
+import { isString, listOf, usePersisted, type Source } from './store'
 
 type Stats = { sources: number; streak: number }
 export type Accessory = { id: string; name: string; icon: string; hint: string; goal: number; progress: (s: Stats) => number }
@@ -24,8 +24,8 @@ export function streak(sources: Source[], now: number) {
 const party = () => window.dispatchEvent(new Event('fiapo:party'))
 
 export function useWardrobe(sources: Source[], now: number) {
-  const [equipped, setEquipped] = usePersisted<string[]>('fiapo:equipped', [])
-  const [celebrated, setCelebrated] = usePersisted<string[]>('fiapo:celebrated', [])
+  const [equipped, setEquipped] = usePersisted<string[]>('fiapo:equipped', [], listOf(isString))
+  const [celebrated, setCelebrated] = usePersisted<string[]>('fiapo:celebrated', [], listOf(isString))
   const [testMode, setTestMode] = useState(false)
   const [testToast, setTestToast] = useState(false)
 

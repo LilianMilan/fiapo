@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
-import { usePersisted } from './store'
+import { isRecord, listOf, usePersisted } from './store'
 
 export type FocusSession = { startedAt: number; minutes: number; endedAt: number; completed: boolean }
 type Active = { startedAt: number; minutes: number }
 
 export const FOCUS_OPTIONS = [15, 25, 50]
+
+const isActive = (v: unknown): v is Active => isRecord(v) && Number.isFinite(v.startedAt) && FOCUS_OPTIONS.includes(v.minutes as number)
+const isSession = (v: unknown): v is FocusSession => isRecord(v) && Number.isFinite(v.endedAt) && typeof v.completed === 'boolean' && isActive(v)
+const parseActive = (raw: unknown) => isActive(raw) ? raw : undefined
 const PAGE_TITLE = document.title
 
 const isToday = (t: number, now: number) => new Date(t).toDateString() === new Date(now).toDateString()
@@ -15,8 +19,8 @@ const clock = (ms: number) => {
 
 export function useFocus() {
   // Persisted so a reload doesn't lose the running session
-  const [active, setActive] = usePersisted<Active | null>('fiapo:focus-active', null)
-  const [history, setHistory] = usePersisted<FocusSession[]>('fiapo:focus-history', [])
+  const [active, setActive] = usePersisted<Active | null>('fiapo:focus-active', null, parseActive)
+  const [history, setHistory] = usePersisted<FocusSession[]>('fiapo:focus-history', [], listOf(isSession))
   const [tick, setTick] = useState(Date.now)
   const [finished, setFinished] = useState<FocusSession | null>(null)
 

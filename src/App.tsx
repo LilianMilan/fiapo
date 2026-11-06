@@ -95,6 +95,7 @@ function App() {
   const submit = (e: FormEvent) => {
     e.preventDefault()
     const source = add({ url: url.trim(), title: title.trim() || hostname(url.trim()), subject: subject.trim() || 'Geral' })
+    if (!source) return
     setJustAdded(source.id)
     setNow(Date.now())
     setUrl('')
@@ -105,7 +106,7 @@ function App() {
     <header className="topbar"><div className="breadcrumbs">Fiapo <span>/</span> <b>Minha teia</b></div></header>
     <section className="intro"><div className="eyebrow"><Sparkles size={13} /> SEU COMPANHEIRO DE ESTUDO</div><h1>Siga os <em>fios.</em></h1><p>{MOOD_LINES[mood]}</p>
       <form className="add-form" onSubmit={submit}>
-        <input type="url" required placeholder="Cole o link do que você está estudando" value={url} onChange={e => setUrl(e.target.value)} />
+        <input type="url" required pattern="https?://.+" title="Use um link que comece com http:// ou https://" placeholder="Cole o link do que você está estudando" value={url} onChange={e => setUrl(e.target.value)} />
         <input placeholder="Título (opcional)" value={title} onChange={e => setTitle(e.target.value)} />
         <input placeholder="Matéria" list="fiapo-subjects" value={subject} onChange={e => setSubject(e.target.value)} />
         <datalist id="fiapo-subjects">{[...colors.keys()].map(s => <option key={s} value={s} />)}</datalist>
