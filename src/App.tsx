@@ -1,10 +1,11 @@
-import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import { Activity, Globe2, Hourglass, Plus, Sparkles, X } from 'lucide-react'
 import { Sidebar } from './components/Sidebar'
 import { PageCrawler } from './components/PageCrawler'
 import { DAY, isForgotten, moodOf, sampleSources, sendFiapoTo, subjectColors, useSources, type Mood, type Source } from './fiapo/store'
 import { ACCESSORIES, useWardrobe } from './fiapo/wardrobe'
 import { FOCUS_OPTIONS, useFocus } from './fiapo/focus'
+import { layoutWeb, stageHeight, type CardSize } from './fiapo/layout'
 import './App.css'
 
 const MOOD_LINES: Record<Mood, string> = {
@@ -23,38 +24,49 @@ const daysAgo = (t: number, now: number) => {
   return days === 0 ? 'hoje' : days === 1 ? 'ontem' : `há ${days} dias`
 }
 
-// First ring holds 6 sources, the rest go to an outer ring
-function webPosition(i: number, n: number) {
-  const outer = i >= 6
-  const count = outer ? n - 6 : Math.min(n, 6)
-  const k = outer ? i - 6 : i
-  const angle = -Math.PI / 2 + (k / count) * Math.PI * 2 + (outer ? Math.PI / count : 0)
-  const r = outer ? 44 : 31
-  return { x: 50 + Math.cos(angle) * r, y: 50 + Math.sin(angle) * r }
-}
-
 type WebProps = { sources: Source[]; colors: Map<string, string>; mood: Mood; now: number; onOpen: (id: string) => void; onRemove: (id: string) => void; onSample: () => void }
 
 function StudyWeb({ sources, colors, mood, now, onOpen, onRemove, onSample }: WebProps) {
-  const placed = sources.map((s, i) => ({ s, ...webPosition(i, sources.length) }))
+  // Cards are placed in pixels, so measure the stage and the real card size (titles can wrap)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const [box, setBox] = useState<{ w: number; h: number; card: CardSize }>({ w: 0, h: 0, card: { w: 180, h: 112 } })
+  useLayoutEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+    const measure = () => {
+      const cards = [...stage.querySelectorAll<HTMLElement>('.source-node')]
+      const card = cards.length ? { w: cards[0].offsetWidth, h: Math.max(...cards.map(c => c.offsetHeight)) } : { w: 180, h: 112 }
+      const w = stage.clientWidth, h = stage.clientHeight
+      setBox(b => b.w === w && b.h === h && b.card.w === card.w && b.card.h === card.h ? b : { w, h, card })
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(stage)
+    return () => observer.disconnect()
+  }, [sources])
+
+  const spots = layoutWeb(sources.length, box.w, box.h, box.card)
+  const placed = sources.map((s, i) => ({ s, ...spots[i] }))
   const threads = placed.flatMap((p, i) => {
     const next = placed.slice(i + 1).find(q => q.s.subject === p.s.subject)
     return next ? [{ from: p, to: next, color: colors.get(p.s.subject) }] : []
   })
 
-  return <div className={`spider-stage${sources.length > 6 ? ' crowded' : ''}`}>
+  const minHeight = sources.length && box.w ? stageHeight(sources.length, box.w, box.card) : undefined
+
+  return <div ref={stageRef} className="spider-stage" style={{ minHeight }}>
     <div className="stage-label"><span className="live-dot" />SUA TEIA</div>
     <svg className="web-lines" aria-hidden="true">
-      <ellipse className="web-ring" cx="50%" cy="50%" rx="31%" ry="31%" />
-      {sources.length > 6 && <ellipse className="web-ring inner" cx="50%" cy="50%" rx="44%" ry="44%" />}
-      {placed.map(p => <line key={p.s.id} x1="50%" y1="50%" x2={`${p.x}%`} y2={`${p.y}%`} />)}
-      {threads.map(t => <line key={t.from.s.id + t.to.s.id} className="subject-thread" style={{ stroke: t.color }} x1={`${t.from.x}%`} y1={`${t.from.y}%`} x2={`${t.to.x}%`} y2={`${t.to.y}%`} />)}
+      <ellipse className="web-ring" cx="50%" cy="51%" rx="31%" ry="31%" />
+      {sources.length > 6 && <ellipse className="web-ring inner" cx="50%" cy="51%" rx="42%" ry="40%" />}
+      {placed.map(p => <line key={p.s.id} x1="50%" y1="51%" x2={p.x} y2={p.y} />)}
+      {threads.map(t => <line key={t.from.s.id + t.to.s.id} className="subject-thread" style={{ stroke: t.color }} x1={t.from.x} y1={t.from.y} x2={t.to.x} y2={t.to.y} />)}
     </svg>
     {placed.map(({ s, x, y }) => {
       const forgotten = isForgotten(s, now)
       const color = colors.get(s.subject)
       return <article className="article-node source-node" key={s.id} data-source-id={s.id} data-forgotten={forgotten || undefined}
-        style={{ left: `${x}%`, top: `${y}%`, '--node-color': color, '--touch-color': color, '--touch-alt': color } as CSSProperties}>
+        style={{ left: x, top: y, visibility: box.w ? undefined : 'hidden', '--node-color': color, '--touch-color': color, '--touch-alt': color } as CSSProperties}>
         <div className="node-top"><span><i />{s.subject.toUpperCase()}</span><button className="node-remove" aria-label={`Remover ${s.title}`} onClick={() => onRemove(s.id)}><X size={11} /></button></div>
         <h3><a href={s.url} target="_blank" rel="noreferrer" onClick={() => onOpen(s.id)}>{s.title}</a></h3>
         <div className="node-source">{hostname(s.url).toUpperCase()}</div>
